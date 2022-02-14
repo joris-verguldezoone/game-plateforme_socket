@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+</head>
+<body>
+    <form method="GET" id="inscription" action="">
+        <label for="login">Login</label>
+        <input type="text" id="login" name="login">
+
+        <label for="password">Password</label>
+        <input type="text" name="password" id="password">
+
+        <label for="confirm_password">Confirm Password</label>
+        <input type="text" name="confirm_password" id="confirm_password">
+
+        <input type="submit" id="submit_inscription" name="submit_inscription" value="S'inscrire">
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();   
+        
+        var inscription = document.getElementById('inscription');
+        var login = document.getElementById('login');
+        var password = document.getElementById('password');
+        var confirm_password = document.getElementById('confirm_password');
+      
+        inscription.addEventListener("submit", function(e){
+
+            e.preventDefault();
+            console.log(login.value); 
+            console.log(password.value, confirm_password.value);
+            console.log(login.value.length);
+            if(login.value.length != 0 && password.value.length != 0 && confirm_password.value.length != 0)
+            {
+                if(confirm_password.value == password.value)
+                {
+                    socket.emit('inscription', login.value, password.value, confirm_password.value);              
+                    console.log('emit inscription');
+                }
+            }
+        })
+        
+
+      </script>
+</body>
+</html>
