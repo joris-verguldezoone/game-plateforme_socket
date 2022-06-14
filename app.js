@@ -1,8 +1,7 @@
 // starter nodejs
 // const http = require('http');
-
-// const hostname = '127.0.0.1';
-// const port = 3000;
+const hostname = '51.75.241.128';
+const port = 3002;
 
 // const server = http.createServer((req, res) => {
 //   res.statusCode = 200;
@@ -28,13 +27,15 @@ const { Server } = require("socket.io");
 const io = new Server(server);
 
 // SQL
-var mysql = require('mysql');
+
+/*var mysql = require('mysql');
+
 
 var con = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "",
-  database: "api"
+  database: "jeux"
 });
 
 con.connect(function (err) {
@@ -44,20 +45,28 @@ con.connect(function (err) {
 
 // formulaire d'inscription
 // formulaire de connexion 
+*/
 
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  //res.sendFile(__dirname + '/index.html');
+	console.log('on est passé dans le log de /')
 });
+/*
 app.get('/register', (req, res) => {
   res.sendFile(__dirname + '/register.html');
 });
 app.get('/connexion', (req, res) => {
   res.sendFile(__dirname + '/connexion.html')
 })
-server.listen(3000, () => {
-  console.log('listening on *:3000');
-});
+*/
+//server.listen(3003, () => {
+  //console.log('listening on *:3003');
+//});
+ server.listen(port, hostname, () => {
+   console.log(`Server running at http://${hostname}:${port}/`);
+ });
+
 //io
 
 io.on('connection', (socket) => {
@@ -76,8 +85,10 @@ io.on('connection', (socket) => {
     console.log(clients);
   });
 });
+
 io.on('connection', (socket) => {
   console.log('click event');
+  
   socket.on('join lobby', value => { // je comprends pas tt a fait pk on doit mettre un paramatres
 
     socket.join("clickedRoom");
@@ -85,11 +96,24 @@ io.on('connection', (socket) => {
     const clients = io.sockets.adapter.rooms.get('clickedRoom');
     console.log(clients);
     console.log(socket.id);
-  })
+ })
+
+let blue = 0;
+let red = 0;
+let trace = {};
+	socket.on('blue', value => {
+        	blue = blue + 1;
+        	console.log('blue:' + blue);
+		trace[blue] = socket.id+  ' '+ blue
+		console.log(trace)
+	}) 
+	socket.on('red', value => {
+        	red = red + 1;
+        	console.log("red:" + red );
+	})
+
 
 })
-
-
 
 
 // function joinLobby() {
@@ -113,7 +137,7 @@ io.on('connection', (socket) => {
 
 
 // faut attribuer un room 
-const bcrypt = require('bcrypt')
+//const bcrypt = require('bcrypt')
 
 // async function hashPassword(password) {
 //   const salt = await bcrypt.genSalt(10)
@@ -122,7 +146,7 @@ const bcrypt = require('bcrypt')
 // }
 
 // inscription
-io.on('connection', (socket) => {
+/* io.on('connection', (socket) => {
 
   socket.on('inscription', (login, password, confirm_password) => {
     // SQL
@@ -156,5 +180,5 @@ io.on('connection', (socket) => {
   })
 });
 
-
+*/
 // connexion
