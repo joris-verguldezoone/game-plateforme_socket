@@ -2,7 +2,7 @@
 // const http = require('http');
 const hostname = "127.0.0.1"
 // const hostname = '51.75.241.128';
-const port = 3002;
+const port = 3003;
 
 // const server = http.createServer((req, res) => {
 //   res.statusCode = 200;
@@ -100,6 +100,7 @@ server.listen(port, hostname, () => {
 
 // });
 const axios = require('axios');
+const { emit } = require('process');
 
 class User { // a n'utilise que dans le lobby sinon on peut pas push le socket et le payload a la connection 
   constructor(socket, payload) {
@@ -141,35 +142,6 @@ class Lobby {
     this.slots = slots
   }
 
-  createLobby(lobbyValues) {
-    var clients = io.sockets.adapter.rooms.get(lobbyValues[0][0]);
-    console.log('client debut', clients, 'client debut')
-    console.log(this.socket.id, 'this.socket.id :)')
-    const rooms = io.of("/").adapter.rooms;
-    const sids = io.of("/").adapter.sids;
-    // console.log(rooms, " rooms")
-    // console.log(sids, " sids")
-
-    if (clients != undefined) { // la partie n"a pas été créée 
-      console.log(typeof (lobbyValues[0][2]), typeof (clients.size), typeof (lobbyValues[0][3]))
-      console.log(clients.size <= lobbyValues[0][3], 'clients.size <= lobbyValues[0][3]')
-      if (clients.size < lobbyValues[0][3]) {
-        this.socket.emit("lobby_join_200", 'gg wp')
-        console.log(this.socket.id)
-        console.log("Success")
-        clients = io.sockets.adapter.rooms.get(lobbyValues[0][0]);
-        console.log("clients final", clients, "clients final")
-
-      }
-      else {
-        return ("lobby is full you can't join")
-      }
-    }
-    else {
-      return ("partie non créée")
-    }
-  }
-
   getNumberOfPlayer = (nbMaxPlayer) => {
     let playerInSlot = []
     console.log(nbMaxPlayer, 'nbMaxPlayer in func')
@@ -205,6 +177,35 @@ class Lobby {
   }
 
 }
+
+const createLobby = (lobbyValues, socket) => {
+  var clients = io.sockets.adapter.rooms.get(lobbyValues[0][0]);
+  console.log('client debut', clients, 'client debut')
+  console.log(socket.id, 'socket.id :)')
+  const rooms = io.of("/").adapter.rooms;
+  const sids = io.of("/").adapter.sids;
+  // console.log(rooms, " rooms")   // console.log(sids, " sids")
+
+  if (clients != undefined) { // la partie n"a pas été créée 
+    console.log(typeof (lobbyValues[0][2]), typeof (clients.size), typeof (lobbyValues[0][3]))
+    console.log(clients.size <= lobbyValues[0][3], 'clients.size <= lobbyValues[0][3]')
+    if (clients.size < lobbyValues[0][3]) {
+      socket.emit("lobby_join_200", lobbyValues[0][3]) // on set nbMaxPlayer mais ça sert a rien
+      console.log(socket.id)
+      clients = io.sockets.adapter.rooms.get(lobbyValues[0][0]);
+      console.log("clients final", clients, "clients final")
+      return "Status :200";
+
+    }
+    else {
+      return ("lobby is full you can't join")
+    }
+  }
+  else {
+    return ("partie non créée")
+  }
+}
+
 const getAny_DeleteByName = (urlRequest) => {
   axios.get('http://51.75.241.128:3001/' + urlRequest)
     .then((res) => {
@@ -253,6 +254,8 @@ const getApiAndEmit = socket => {
 
 let interval;
 
+let lobbySlotsState = [];
+
 
 io.on("connection", (socket) => {
   console.log(socket.id, "user?");
@@ -273,48 +276,74 @@ io.on("connection", (socket) => {
 
 
   socket.on("disconnect", () => {
-    console.log(LobbyObj.nomLobby, "LobbyObj.nomLobby")
-    let nomLobby = LobbyObj.getNomLobby();
-    var clients = io.sockets.adapter.rooms.get(LobbyObj.nomLobby);
-    console.log(clients)
-    console.log(nomLobby)
-    if (clients == undefined) {
-      console.log("client on est passé dedans y'a plus qu'a delete")
-      getAny_DeleteByName('lobby/find?nomLobby=' + nomLobby)
+    // console.log(LobbyObj.nomLobby, "LobbyObj.nomLobby")
+    // let nomLobby = LobbyObj.getNomLobby();
+    // var clients = io.sockets.adapter.rooms.get(LobbyObj.nomLobby);
+    // console.log(clients)
+    // console.log(nomLobby)
+    // if (clients == undefined) {
+    //   console.log("client on est passé dedans y'a plus qu'a delete")
+    //   getAny_DeleteByName('lobby/find?nomLobby=' + nomLobby) // relier a une class user qui effacera les lobby a la déconnection
 
-    }
-    else {
-      console.log("else ", clients, 'il doit rester des socket dans le lobby')
-    }
+    // }
+    // else {
+    //   console.log("else ", clients, 'il doit rester des socket dans le lobby')
+    // }
 
     console.log("Client disconnected");
     clearInterval(interval);
   });
 
-  const LobbyObj = new Lobby(socket, 'toDefine', 0, 0, []);
+  // lobby
+
 
   socket.on("join_lobby", value => {
 
-    let result = LobbyObj.createLobby(value) // est ce que le lobby existe ? renommer fonction
-    console.log(result)
+    createLobby(value, socket) // est ce que le lobby existe ? renommer fonction
 
 
   })
   socket.on("join_lobby_validate", data => { // si a partie a été créer // la data doit etre le payload comme ça pas besoin de class user  //nomlobby + nbPlayer MAx
-    let result = LobbyObj.joinLobbyAccess(data)
-    console.log(data, 'nom loby ????')
-    LobbyObj.setNomLobby(data)
-    var clients = io.sockets.adapter.rooms.get(data[0]);
+    console.log('join_lobby_validate data : ', data)
+    let clients = io.sockets.adapter.rooms.get(data[0]);
+
     console.log(clients, 'combien y a til de gens')
-    if (clients.size <= 1 && client.size != 0) {
-      socket.to(data[0]).emit("lobby_slots", result) // result c'est la totalité des slots disponibles
+    if (clients == undefined) {
+      const LobbyObj = new Lobby(socket, 'toDefine', 0, 0, []);
+
+      let result = LobbyObj.joinLobbyAccess(data)
+      console.log("LobbyObj.joinLobbyAccess(data) : ", result)
+      console.log(data, 'data')
+      LobbyObj.setNomLobby(data[0])
+      console.log('join_lobby_validate LobbyObj.setNomLobby(data) : ', LobbyObj.nomLobby)
+      lobbySlotsState = result;
+      console.log('lobbySlotsState : in creation ', lobbySlotsState)
+      socket.emit("lobby_slots_init", result) // result c'est la totalité des slots disponibles
       LobbyObj.setSlots(result) // inutile?
+      console.log("LobbyObj.setSlots(result) : ", LobbyObj.slots)
     }
     else {
-      socket.to(data[0]).emit('lobby_slots_update', LobbyObj.slots)
+      console.log('lobbySlotsState : second player ', lobbySlotsState)
+      socket.join(data[0]);
+      socket.emit("lobby_slots_init", lobbySlotsState) // result c'est la totalité des slots disponibles
+      console.log('other user joined successfully')
+      const rooms = io.of("/").adapter.rooms;
+      console.log(rooms)
+
     }
-    console.log(result)
   })
+  socket.on('lobby_slot_update', slots => {
+    lobbySlotsState = slots
+    console.log("lobby_slot_update : ", lobbySlotsState)
+    socket.emit("lobby_slots_init", lobbySlotsState) // result c'est la totalité des slots disponibles
+
+
+  })
+  // socket.on('changeLobbySlots', (allSlots) => {
+  //   LobbyObj.slots = allSlots
+  //   console.log("LobbyObj.slots : ", LobbyObj.slots)
+  //   socket.to(allSlots[0]).emit("broadCast_slots", (allSlots[1])) // broadCast
+  // })
 });
 
 
@@ -348,18 +377,18 @@ io.on("connection", (socket) => {
 
 // to everyone and the sender
 
-io.emit('some event', { someProperty: 'some value', otherProperty: 'other value' }); // This will emit the event to all connected sockets
+// io.emit('some event', { someProperty: 'some value', otherProperty: 'other value' }); // This will emit the event to all connected sockets
 
-io.on('connection', (socket) => {
-  socket.broadcast.emit('hi');
-});
+// io.on('connection', (socket) => {
+//   socket.broadcast.emit('hi');
+// });
 
 
-io.on('connection', (socket) => {
-  socket.on('chat message', (msg) => {
-    io.emit('chat message', msg);
-  });
-});
+// io.on('connection', (socket) => {
+//   socket.on('chat message', (msg) => {
+//     io.emit('chat message', msg);
+//   });
+// });
 
 
 
